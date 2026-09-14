@@ -64,7 +64,46 @@ class ReferenceModel:
         self, t: float, dt: float, eta_cmd: np.ndarray
     ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         # TODO: Replace this pass-through placeholder with your reference model.
-        self.eta_ref = np.asarray(eta_cmd, dtype=float).reshape(6).copy()
-        self.nu_ref = np.zeros(6)
-        self.acc_ref = np.zeros(6)
+
+        #implementation of the second order low pass filter  
+        # eta_ddot + 2*zeta*w_r*eta_dot + w_r^2*eta = w_r^2*eta_cmd
+
+        #filter coeff 
+        wr_NE = 0.1 #need to be tuned
+        wr_psi = 0.1 #need to be tuned
+        zeta = 1 # critical damping ratio 
+
+        #ref NE
+        for i in (0,1):
+            eta = self.eta_ref[i]
+            eta_dot = self.nu_ref[i]
+            cmd = eta_cmd[i]
+
+            #compute eta_ddot from filter dyn
+            eta_ddot = -2*zeta* wr_NE * eta_dot + (cmd - eta)*wr_NE*wr_NE
+
+            #euler intration
+            self.acc_ref[i] = eta_ddot
+            self.nu_ref[i] = eta_dot + dt*self.acc_ref[i]
+            self.eta_ref[i] = eta + dt*self.nu_ref[i]
+
+        #ref spi 
+        psi = self.eta_ref[5]
+        psi_dot = self.nu_ref[5]
+        psi_sp = eta_cmd[5]
+
+        #compute error with arctan2 
+        err = np.arctan2(np.sin(psi_sp - psi), np.cos(psi_sp - psi))
+        #filter dynamics
+        psi_ddot = - 2 * zeta * wr_psi * psi_dot + wr_psi**2 * err 
+
+        #euler integration
+        self.nu_ref[5] = psi_dot + dt * psi_ddot
+        self.eta_ref[5] = psi + dt * self.nu_ref[5]
+        self.eta_ref[5] = np.arctan2(np.sin(self.eta_ref[5]), np.cos(self.eta_ref[5]))  # keep wrapped
+        self.acc_ref[5] = psi_ddot
+
+        # self.eta_ref = np.asarray(eta_cmd, dtype=float).reshape(6).copy()
+        # self.nu_ref = np.zeros(6)
+        # self.acc_ref = np.zeros(6)
         return self.eta_ref, self.nu_ref, self.acc_ref
