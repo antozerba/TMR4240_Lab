@@ -79,13 +79,13 @@ M = M_RB + M_A
 
 @dataclass
 class PIDGains:
-    wn_N   = 0.08
-    wn_E   = 0.08
-    wn_psi = 0.08
+    wn_N   = 0.4
+    wn_E   = 0.4
+    wn_psi = 0.3
 
-    zeta_N   = 1.3
-    zeta_E   = 1.3
-    zeta_psi =  1.3
+    zeta_N   = 1.0
+    zeta_E   = 1.0
+    zeta_psi =  1.0
 
     Kp: np.ndarray = field(init=False)
     Ki: np.ndarray = field(init=False)
