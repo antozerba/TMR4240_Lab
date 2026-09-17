@@ -35,7 +35,6 @@ from models.thruster_dynamics import ThrusterConfig
 #import pickle
 import pickle
 from importlib.resources import files
-from IPython.display import Math, display
 
 @dataclass
 class SimConfig:
@@ -78,40 +77,15 @@ D_l, D_u, D_v, D_r = data["Dl"], data["Du"], data["Dv"], data["Dr"]
 M = M_RB + M_A
 
 
-def _fmt(x):
-    # format a number for LaTeX, scientific notation for large/small values
-    if x == 0:
-        return "0"
-    if abs(x) >= 1e4 or abs(x) < 1e-2:
-        m, e = f"{x:.4e}".split("e")
-        return rf"{float(m):.4g} \times 10^{{{int(e)}}}"
-    return f"{x:.5g}"
-
-
-def bmatrix(A):
-    A = np.atleast_2d(A)
-    rows = [" & ".join(_fmt(x) for x in row) for row in A]
-    return r"\begin{bmatrix}" + r" \\ ".join(rows) + r"\end{bmatrix}"
-
-
-def show(lhs, A):
-    display(Math(lhs + " = " + bmatrix(A)))
-
-
-show(r"M_{RB}", M_RB)
-show(r"M_A", M_A)
-show(r"M = M_{RB} + M_A", M)
-
-
 @dataclass
 class PIDGains:
-    wn_N   = 0.15
-    wn_E   = 0.15
-    wn_psi = 0.2
+    wn_N   = 0.08
+    wn_E   = 0.08
+    wn_psi = 0.08
 
-    zeta_N   = 1.0
-    zeta_E   = 1.0
-    zeta_psi =  1.0
+    zeta_N   = 1.3
+    zeta_E   = 1.3
+    zeta_psi =  1.3
 
     Kp: np.ndarray = field(init=False)
     Ki: np.ndarray = field(init=False)
@@ -125,15 +99,15 @@ class PIDGains:
         ])
             
         self.Ki = np.array([
-            (self.wn_N/10) * self.Kp[0], 
-            (self.wn_E/10) * self.Kp[1], 
-            (self.wn_psi/10) * self.Kp[2]
+            (self.wn_N/50) * self.Kp[0], 
+            (self.wn_E/50) * self.Kp[1], 
+            (self.wn_psi/50) * self.Kp[2]
         ])
             
         self.Kd = np.array([
             2*self.zeta_N*self.wn_N * M[0,0] - D_l[0,0], 
-            2*self.zeta_E*self.wn_N * M[1,1] - D_l[1,1], 
-            2*self.zeta_psi*self.wn_N * M[2,2] - D_l[2,2]
+            2*self.zeta_E*self.wn_E * M[1,1] - D_l[1,1], 
+            2*self.zeta_psi*self.wn_psi * M[2,2] - D_l[2,2]
         ])
 
 
