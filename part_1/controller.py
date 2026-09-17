@@ -57,7 +57,7 @@ class DPController:
     """
     
 
-    def __init__(self, *args, **kwargs):
+        def __init__(self, *args, **kwargs):
         gains = PIDGains()
         self.Kp = np.diag(gains.Kp)
         self.Ki = np.diag(gains.Ki)
@@ -91,7 +91,7 @@ class DPController:
                           ])
         e_body = R.T @ e_ned
 
-        #velocity error, already BODY coord.
+        #velocity eroor, already BODY coord.
         e_nu = np.array([nu_ref[0]-nu[0],
                          nu_ref[1]-nu[1],
                          nu_ref[5]-nu[5]
@@ -111,3 +111,4 @@ class DPController:
         tau_d = np.zeros(6)
         tau_d[0], tau_d[1], tau_d[5] = tau3
         return tau_d
+        
