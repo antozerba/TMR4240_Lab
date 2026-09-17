@@ -57,7 +57,7 @@ class DPController:
     """
     
 
-        def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         gains = PIDGains()
         self.Kp = np.diag(gains.Kp)
         self.Ki = np.diag(gains.Ki)
