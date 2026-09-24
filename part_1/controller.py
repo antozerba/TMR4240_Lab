@@ -95,13 +95,12 @@ class DPController:
                           ])
         e_body = R.T @ e_ned
 
-        #velocity eroor, already BODY coord.
-        e_nu = np.array([nu_ref[0]-nu[0],
-                         nu_ref[1]-nu[1],
-                         nu_ref[5]-nu[5]
-                         ])
+        #velocity error: nu_ref is NED, rotate to BODY before comparing with nu
+        nu_ref_body = R.T @ np.array([nu_ref[0], nu_ref[1], nu_ref[5]])
+        e_nu = nu_ref_body - np.array([nu[0], nu[1], nu[5]])
 
         # integral (kept in NED, then rotated)
+        self._last_int_inc = e_ned * dt  # undone by apply_external_aw if saturated
         self.int_ned += e_ned[:2] * dt
         self.int_psi += e_ned[2] * dt
         i_ned = np.array([self.int_ned[0],
@@ -137,8 +136,10 @@ class DPController:
             self.last_pid_body["P"][5]+self.last_pid_body["I"][5]+self.last_pid_body["D"][5]
             ])
         
-        unachieved = Rz(psi) @ (tau_cmd3 - tau_applied3)
-        Ki_diag = np.diag(self.Ki)
-        safe = np.where(np.abs(Ki_diag) > 1e-9, Ki_diag, 1.0)
-        self.int_ned -= (unachieved[:2] / safe[:2]) * dt
-        self.int_psi -= (unachieved[2] / safe[2]) * dt
+        # Conditional integration: if the thrusters could not deliver the
+        # command, undo this step's integration instead of back-calculating
+        # (back-calculation drove I to cancel P after large steps).
+        unachieved = tau_cmd3 - tau_applied3
+        if np.linalg.norm(unachieved) > 1e-3 * max(np.linalg.norm(tau_cmd3), 1.0):
+            self.int_ned -= self._last_int_inc[:2]
+            self.int_psi -= self._last_int_inc[2]
