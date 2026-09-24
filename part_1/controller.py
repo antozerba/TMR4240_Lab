@@ -81,6 +81,10 @@ class DPController:
         nu_ref: np.ndarray | None = None,
         acc_ref: np.ndarray | None = None,
     ):
+
+        if nu_ref is None:
+            nu_ref = np.zeros(6)
+
         psi = eta[5]
         R = Rz(psi) # NED = R @ body (3x3) -> [N,E,psi]
 
@@ -110,5 +114,31 @@ class DPController:
 
         tau_d = np.zeros(6)
         tau_d[0], tau_d[1], tau_d[5] = tau3
+
+        self.last_pid_body = {
+            "P": np.zeros(6), "I": np.zeros(6), "D": np.zeros(6)
+        }
+        self.last_pid_body["P"][[0,1,5]] = self.Kp @ e_body
+        self.last_pid_body["I"][[0,1,5]] = self.Ki @ i_body
+        self.last_pid_body["D"][[0,1,5]] = self.Kd @ e_nu
+
         return tau_d
+    
+    def apply_external_aw(self, tau_applied, psi, dt):
+        tau_applied3 = np.array([
+            tau_applied[0], 
+            tau_applied[1], 
+            tau_applied[5]
+            ])
         
+        tau_cmd3 = np.array([
+            self.last_pid_body["P"][0]+self.last_pid_body["I"][0]+self.last_pid_body["D"][0],
+            self.last_pid_body["P"][1]+self.last_pid_body["I"][1]+self.last_pid_body["D"][1],
+            self.last_pid_body["P"][5]+self.last_pid_body["I"][5]+self.last_pid_body["D"][5]
+            ])
+        
+        unachieved = Rz(psi) @ (tau_cmd3 - tau_applied3)
+        Ki_diag = np.diag(self.Ki)
+        safe = np.where(np.abs(Ki_diag) > 1e-9, Ki_diag, 1.0)
+        self.int_ned -= (unachieved[:2] / safe[:2]) * dt
+        self.int_psi -= (unachieved[2] / safe[2]) * dt
