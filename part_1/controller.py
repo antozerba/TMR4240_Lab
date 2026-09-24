@@ -46,7 +46,7 @@ own runs but fail the checks.
 """
 import numpy as np
 from simulation.utils import Rz, angle_diff
-from part_1.config import PIDGains
+from part_1.config import PIDGains, M
 
 class DPController:
     """
@@ -64,6 +64,10 @@ class DPController:
         self.Kd = np.diag(gains.Kd)
         self.int_ned = np.zeros(2)
         self.int_psi = 0.0
+
+        # Diagonal mass/inertia for the inertia feedforward term below.
+        # Matches the same diagonal-only simplification Kp/Kd already use.
+        self.M_diag = np.array([M[0, 0], M[1, 1], M[2, 2]])
 
     def reset(self) -> None:
         """Optional: reset internal states (integrators, filters) before a run."""
@@ -99,6 +103,13 @@ class DPController:
         nu_ref_body = R.T @ np.array([nu_ref[0], nu_ref[1], nu_ref[5]])
         e_nu = nu_ref_body - np.array([nu[0], nu[1], nu[5]])
 
+        # inertia feedforward: acc_ref is NED, rotate to BODY, then M*a.
+        # Anticipates the force needed to match the reference's acceleration
+        # instead of only reacting once a tracking error has built up --
+        # this is what actually closes the r-tracking lag, not more damping.
+        acc_ref_body = R.T @ np.array([acc_ref[0], acc_ref[1], acc_ref[5]])
+        tau_ff = self.M_diag * acc_ref_body
+
         # integral (kept in NED, then rotated)
         self._last_int_inc = e_ned * dt  # undone by apply_external_aw if saturated
         self.int_ned += e_ned[:2] * dt
@@ -109,17 +120,19 @@ class DPController:
                           ])
         i_body = R.T @ i_ned
 
-        tau3 = self.Kp @ e_body + self.Kd @ e_nu + self.Ki @ i_body
+        tau3 = self.Kp @ e_body + self.Kd @ e_nu + self.Ki @ i_body + tau_ff
+        self._last_tau_cmd3 = tau3.copy()  # full commanded wrench, FF included
 
         tau_d = np.zeros(6)
         tau_d[0], tau_d[1], tau_d[5] = tau3
 
         self.last_pid_body = {
-            "P": np.zeros(6), "I": np.zeros(6), "D": np.zeros(6)
+            "P": np.zeros(6), "I": np.zeros(6), "D": np.zeros(6), "FF": np.zeros(6)
         }
         self.last_pid_body["P"][[0,1,5]] = self.Kp @ e_body
         self.last_pid_body["I"][[0,1,5]] = self.Ki @ i_body
         self.last_pid_body["D"][[0,1,5]] = self.Kd @ e_nu
+        self.last_pid_body["FF"][[0,1,5]] = tau_ff
 
         return tau_d
     
@@ -130,11 +143,11 @@ class DPController:
             tau_applied[5]
             ])
         
-        tau_cmd3 = np.array([
-            self.last_pid_body["P"][0]+self.last_pid_body["I"][0]+self.last_pid_body["D"][0],
-            self.last_pid_body["P"][1]+self.last_pid_body["I"][1]+self.last_pid_body["D"][1],
-            self.last_pid_body["P"][5]+self.last_pid_body["I"][5]+self.last_pid_body["D"][5]
-            ])
+        tau_cmd3 = self._last_tau_cmd3#np.array([
+            #self.last_pid_body["P"][0]+self.last_pid_body["I"][0]+self.last_pid_body["D"][0],
+            #self.last_pid_body["P"][1]+self.last_pid_body["I"][1]+self.last_pid_body["D"][1],
+            #self.last_pid_body["P"][5]+self.last_pid_body["I"][5]+self.last_pid_body["D"][5]
+            #])
         
         # Conditional integration: if the thrusters could not deliver the
         # command, undo this step's integration instead of back-calculating
