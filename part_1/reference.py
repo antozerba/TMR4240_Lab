@@ -69,9 +69,10 @@ class ReferenceModel:
         # eta_ddot + 2*zeta*w_r*eta_dot + w_r^2*eta = w_r^2*eta_cmd
 
         #filter coeff 
-        wr_NE = 0.1 #need to be tuned
-        wr_psi = 0.1 #need to be tuned
-        zeta = 1 # critical damping ratio 
+        wr_NE = self.cfg_xy.wn
+        zeta_NE = self.cfg_xy.zeta
+        wr_psi = self.cfg_psi.wn
+        zeta_psi = self.cfg_psi.zeta
 
         #ref NE
         for i in (0,1):
@@ -80,7 +81,7 @@ class ReferenceModel:
             cmd = eta_cmd[i]
 
             #compute eta_ddot from filter dyn
-            eta_ddot = -2*zeta* wr_NE * eta_dot + (cmd - eta)*wr_NE*wr_NE
+            eta_ddot = -2*zeta_NE* wr_NE * eta_dot + (cmd - eta)*wr_NE*wr_NE
 
             #euler intration
             self.acc_ref[i] = eta_ddot
@@ -95,7 +96,7 @@ class ReferenceModel:
         #compute error with arctan2 
         err = np.arctan2(np.sin(psi_sp - psi), np.cos(psi_sp - psi))
         #filter dynamics
-        psi_ddot = - 2 * zeta * wr_psi * psi_dot + wr_psi**2 * err 
+        psi_ddot = - 2 * zeta_psi * wr_psi * psi_dot + wr_psi**2 * err
 
         #euler integration
         self.nu_ref[5] = psi_dot + dt * psi_ddot
