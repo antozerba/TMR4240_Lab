@@ -79,9 +79,9 @@ M = M_RB + M_A
 
 @dataclass
 class PIDGains:
-    wn_N   = 0.30
-    wn_E   = 0.30
-    wn_psi = 0.25
+    wn_N   = 0.11
+    wn_E   = 0.11
+    wn_psi = 0.08
 
     zeta_N   = 1.0
     zeta_E   = 1.0
@@ -109,6 +109,7 @@ class PIDGains:
             2*self.zeta_E*self.wn_E * M[1,1] - D_l[1,1], 
             2*self.zeta_psi*self.wn_psi * M[2,2] - D_l[2,2]
         ])
+
 
 
 def default_thrusters_gunnerus3() -> list[ThrusterConfig]:
