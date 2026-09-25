@@ -101,9 +101,9 @@ class PIDGains:
         ])
             
         self.Ki = np.array([
-            (self.wn_N/10) * self.Kp[0], 
-            (self.wn_E/10) * self.Kp[1], 
-            (self.wn_psi/10) * self.Kp[2]
+            (self.wn_N/15) * self.Kp[0], 
+            (self.wn_E/15) * self.Kp[1], 
+            (self.wn_psi/15) * self.Kp[2]
         ])
             
         self.Kd = np.array([
