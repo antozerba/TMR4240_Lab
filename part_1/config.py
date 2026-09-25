@@ -75,6 +75,8 @@ with open(str(pkl), "rb") as f:
 M_RB, M_A = data["Mrb"], data["Ma"]
 D_l, D_u, D_v, D_r = data["Dl"], data["Du"], data["Dv"], data["Dr"]
 M = M_RB + M_A
+print(M)
+print(D_l)
 
 
 @dataclass
@@ -99,9 +101,9 @@ class PIDGains:
         ])
             
         self.Ki = np.array([
-            (self.wn_N/5) * self.Kp[0], 
-            (self.wn_E/5) * self.Kp[1], 
-            (self.wn_psi/5) * self.Kp[2]
+            (self.wn_N/10) * self.Kp[0], 
+            (self.wn_E/10) * self.Kp[1], 
+            (self.wn_psi/10) * self.Kp[2]
         ])
             
         self.Kd = np.array([
