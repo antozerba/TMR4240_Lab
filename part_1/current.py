@@ -53,8 +53,7 @@ class Current:
         self.speed = float(speed)
         self.duration = float(duration)
 
-        # Normalise everything to the "towards" convention once, here,
-        # so step() never has to think about semantics again.
+        # Normalising everything to the "towards" convention
         if semantics == "from":
             offset = np.pi
         elif semantics == "towards":
@@ -77,20 +76,18 @@ class Current:
         nu: np.ndarray,
     ) -> np.ndarray:
         
-        # 1) Direction at time t (constant, or linearly ramped over
-        #    [0, duration] from beta to beta_end, then held).
+        # Direction at time t constant, or linearly ramped over
         if self.beta_end is None:
             angle = self.beta
         else:
             frac = 0.0 if self.duration <= 0.0 else np.clip(t / self.duration, 0.0, 1.0)
             angle = self.beta + frac * (self.beta_end - self.beta)
 
-        # 2) Speed + direction ("towards", NED, 0 = North, pi/2 = East)
-        #    -> North/East components.
+        # Speed and direction
         V_N = self.speed * np.cos(angle)
         V_E = self.speed * np.sin(angle)
 
-        # 3) Assemble the generalized 6-vector expected by the simulator.
+        # Generalized vector to return
         nu_c_ned = np.zeros(6)
         nu_c_ned[0] = V_N
         nu_c_ned[1] = V_E
