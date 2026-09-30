@@ -75,8 +75,6 @@ with open(str(pkl), "rb") as f:
 M_RB, M_A = data["Mrb"], data["Ma"]
 D_l, D_u, D_v, D_r = data["Dl"], data["Du"], data["Dv"], data["Dr"]
 M = M_RB + M_A
-print(M)
-print(D_l)
 
 
 @dataclass
